@@ -1,5 +1,7 @@
 import * as core from '@actions/core'
-import { wait } from './wait.js'
+import github from '@actions/github'
+
+import { log } from 'console'
 
 /**
  * The main function for the action.
@@ -8,18 +10,36 @@ import { wait } from './wait.js'
  */
 export async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
+    log('Starting action...')
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const token: string = core.getInput('token')
+    const lastFourChars = token.slice(-4)
+    core.debug(`Using token: ...${lastFourChars}`)
+    log(`Using token: ...${lastFourChars}`)
 
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const owner: string = core.getInput('owner')
+    const repo: string = core.getInput('repo')
+
+    core.debug(`Listing tags for ${owner}/${repo}`)
+    log(`Listing tags for ${owner}/${repo}`)
+
+    const octokit = github.getOctokit(token)
+
+    // List all tags
+    const tags = await octokit.paginate(octokit.rest.repos.listTags, {
+      owner,
+      repo,
+      per_page: 100
+    })
+
+    core.debug(`Found ${tags.length} tags`)
+    log(`Found ${tags.length} tags`)
+    for (const tag of tags) {
+      log(JSON.stringify(tag))
+    }
 
     // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    core.setOutput('tag', '0.1.0')
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)

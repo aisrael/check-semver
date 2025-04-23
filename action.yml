@@ -4,20 +4,28 @@ author: Your name or organization here
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: check-circle
+  color: blue
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  token:
+    description: The GitHub token to use to access the GitHub API
     required: true
-    default: '1000'
+  owner:
+    description: The account owner of the repository
+    required: true
+  repo:
+    description: The name of the repository
+    required: true
+  prefix:
+    description: The tag prefix to filter by
+    required: false
 
 # Define your outputs here.
 outputs:
-  time:
-    description: Your output description here
+  tag:
+    description: The latest SemVer tag
 
 runs:
   using: node20
