@@ -7,6 +7,7 @@
  */
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
+import * as octowrapper from '../__fixtures__/octowrapper.js'
 
 import { log } from 'console'
 
@@ -30,7 +31,7 @@ function mockCoreInputs(inputs: Record<string, string>) {
     if (Object.prototype.hasOwnProperty.call(mockInputs, key)) {
       return mockInputs[key]
     } else {
-      throw new Error(`Unexpected input: ${key}`)
+      throw new Error(`getInput('${key}') not expected!`)
     }
   })
 }
@@ -41,7 +42,23 @@ const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    // mockCoreInputs({})
+    octowrapper.fetchRepoTags.mockImplementation((octokit, owner, repo) => {
+      log(`fetchRepoTags(octokit, ${owner}, ${repo})`)
+      return Promise.resolve([
+        {
+          name: 'v0.1.234',
+          zipball_url:
+            'https://api.github.com/repos/aisrael/sandbox/zipball/refs/tags/v0.1.234',
+          tarball_url:
+            'https://api.github.com/repos/aisrael/sandbox/tarball/refs/tags/v0.1.234',
+          commit: {
+            sha: '9d2c208b1fb26d48643b528202478ac8e441bdc4',
+            url: 'https://api.github.com/repos/aisrael/sandbox/commits/9d2c208b1fb26d48643b528202478ac8e441bdc4'
+          },
+          node_id: 'REF_dQw8RcmV_bRyZWZzL3RhZ3MvY2xpLXYwLjAuOA'
+        }
+      ])
+    })
   })
 
   afterEach(() => {
@@ -107,5 +124,14 @@ describe('main.ts', () => {
     expect(core.setFailed).toHaveBeenCalledWith(
       'Bad credentials - https://docs.github.com/rest'
     )
+  })
+
+  it("Checks that the version isn't an existing tag", async () => {
+    mockCoreInputs({})
+
+    await run()
+    expect(octowrapper.fetchRepoTags).toHaveBeenCalled()
+
+    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
   })
 })

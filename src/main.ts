@@ -1,10 +1,13 @@
 import * as core from '@actions/core'
 import github from '@actions/github'
-import type { GitHub } from '@actions/github/lib/utils'
+import { GitHub } from '@actions/github/lib/utils'
 
 import { log } from 'console'
 import { getInputs, Input } from './inputs.js'
 import * as semver from 'semver'
+import { fetchRepoTags } from './octowrapper.js'
+
+type GitHubType = InstanceType<typeof GitHub>
 
 /**
  * The main function for the action.
@@ -53,7 +56,7 @@ export async function run(): Promise<void> {
 
 async function checkTags(
   inputs: Input,
-  octokit: InstanceType<typeof GitHub> | null
+  octokit: GitHubType | null
 ): Promise<boolean> {
   if (!octokit) {
     return false
@@ -66,11 +69,7 @@ async function checkTags(
   log(`Listing tags for ${owner}/${repo}`)
 
   // List all tags
-  const tags = await octokit.paginate(octokit.rest.repos.listTags, {
-    owner,
-    repo,
-    per_page: 100
-  })
+  const tags = await fetchRepoTags(octokit, owner, repo)
 
   core.debug(`Found ${tags.length} tags`)
   log(`Found ${tags.length} tags`)
@@ -83,7 +82,7 @@ async function checkTags(
 
 async function checkReleases(
   inputs: Input,
-  octokit: InstanceType<typeof GitHub> | null
+  octokit: GitHubType | null
 ): Promise<boolean> {
   if (!octokit) {
     return false
