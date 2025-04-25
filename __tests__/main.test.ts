@@ -18,7 +18,7 @@ jest.unstable_mockModule('../src/octowrapper.js', () => ({
 }))
 
 const defaultInputs: Record<string, string> = {
-  version: '0.1.234',
+  version: 'v0.1.234',
   token: process.env.GITHUB_TOKEN || '',
   check_tags: 'true',
   check_releases: 'true',

@@ -77,6 +77,12 @@ async function checkTags(
     log(JSON.stringify(tag))
   }
 
+  if (tags.find((tag) => tag.name === inputs.version)) {
+    return false
+  }
+
+  // TODO: Check for highest semver tag
+
   return true
 }
 
