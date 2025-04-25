@@ -7,12 +7,15 @@
  */
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
-import * as octowrapper from '../__fixtures__/octowrapper.js'
+import { fetchRepoTags } from '../__fixtures__/octowrapper.js'
 
 import { log } from 'console'
 
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
+jest.unstable_mockModule('../src/octowrapper.js', () => ({
+  fetchRepoTags
+}))
 
 const defaultInputs: Record<string, string> = {
   version: '0.1.234',
@@ -42,8 +45,8 @@ const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    octowrapper.fetchRepoTags.mockImplementation((octokit, owner, repo) => {
-      log(`fetchRepoTags(octokit, ${owner}, ${repo})`)
+    fetchRepoTags.mockImplementation(() => {
+      // log(`fetchRepoTags(octokit, ${owner}, ${repo})`)
       return Promise.resolve([
         {
           name: 'v0.1.234',
@@ -130,7 +133,7 @@ describe('main.ts', () => {
     mockCoreInputs({})
 
     await run()
-    expect(octowrapper.fetchRepoTags).toHaveBeenCalled()
+    expect(fetchRepoTags).toHaveBeenCalled()
 
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
   })
