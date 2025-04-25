@@ -8,19 +8,29 @@
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
 
-import { log } from 'console'
-
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 
 const defaultInputs: Record<string, string> = {
+  version: '0.1.234',
   token: process.env.GITHUB_TOKEN || '',
-  owner: 'aisrael',
-  repo: 'sandbox'
+  check_tags: 'false',
+  check_releases: 'false',
+  repository: 'aisrael/sandbox',
+  prefix: '',
+  suffix: ''
 }
 
-const actionsStepDebug = process.env.ACTIONS_STEP_DEBUG
-log(`ACTIONS_STEP_DEBUG: ${actionsStepDebug}`)
+function mockCoreInputs(inputs: Record<string, string>) {
+  const mockInputs = { ...defaultInputs, ...inputs }
+  core.getInput.mockImplementation((input) => {
+    if (Object.prototype.hasOwnProperty.call(mockInputs, input)) {
+      return mockInputs[input]
+    } else {
+      throw new Error(`Unexpected input: ${input}`)
+    }
+  })
+}
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
@@ -28,41 +38,56 @@ const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    // Set the action's inputs as return values from core.getInput().
-    core.getInput.mockImplementation((input) => {
-      if (defaultInputs[input]) {
-        return defaultInputs[input]
-      } else {
-        throw new Error(`Unexpected input: ${input}`)
-      }
-    })
+    mockCoreInputs({})
   })
 
   afterEach(() => {
     jest.resetAllMocks()
   })
 
-  it('Sets the tag output', async () => {
+  it('Validates a semver', async () => {
+    mockCoreInputs({
+      version: '0.1.234',
+      check_tags: 'false',
+      check_releases: 'false',
+      token: '',
+      owner: '',
+      repo: ''
+    })
+
     await run()
 
     // Verify the time output was set.
-    expect(core.setOutput).toHaveBeenNthCalledWith(
-      1,
-      'tag',
-      // Simple regex to match a SemVer tag
-      expect.stringMatching(/^\d+.\d+.\d+/)
-    )
+    expect(core.setOutput).toHaveBeenCalled()
+    expect(core.setOutput).toHaveBeenCalledWith('valid', 'true')
+  })
+
+  it('Catches an invalid semver', async () => {
+    mockCoreInputs({
+      version: 'a.b.c',
+      check_tags: 'false',
+      check_releases: 'false',
+      token: '',
+      owner: '',
+      repo: ''
+    })
+
+    await run()
+
+    // Verify the time output was set.
+    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
   })
 
   it('Sets a failed status', async () => {
     // Clear the getInput mock and return an invalid value.
-    defaultInputs.token = 'invalid token'
+    mockCoreInputs({
+      token: 'invalid token'
+    })
 
     await run()
 
     // Verify that the action was marked as failed.
-    expect(core.setFailed).toHaveBeenNthCalledWith(
-      1,
+    expect(core.setFailed).toHaveBeenCalledWith(
       'Bad credentials - https://docs.github.com/rest'
     )
   })
