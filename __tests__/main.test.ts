@@ -8,14 +8,16 @@
 import { jest } from '@jest/globals'
 import * as core from '../__fixtures__/core.js'
 
+import { log } from 'console'
+
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 
 const defaultInputs: Record<string, string> = {
   version: '0.1.234',
   token: process.env.GITHUB_TOKEN || '',
-  check_tags: 'false',
-  check_releases: 'false',
+  check_tags: 'true',
+  check_releases: 'true',
   repository: 'aisrael/sandbox',
   prefix: '',
   suffix: ''
@@ -23,11 +25,12 @@ const defaultInputs: Record<string, string> = {
 
 function mockCoreInputs(inputs: Record<string, string>) {
   const mockInputs = { ...defaultInputs, ...inputs }
-  core.getInput.mockImplementation((input) => {
-    if (Object.prototype.hasOwnProperty.call(mockInputs, input)) {
-      return mockInputs[input]
+  log(`mockInputs: ${JSON.stringify(mockInputs)}`)
+  core.getInput.mockImplementation((key) => {
+    if (Object.prototype.hasOwnProperty.call(mockInputs, key)) {
+      return mockInputs[key]
     } else {
-      throw new Error(`Unexpected input: ${input}`)
+      throw new Error(`Unexpected input: ${key}`)
     }
   })
 }
@@ -38,7 +41,7 @@ const { run } = await import('../src/main.js')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    mockCoreInputs({})
+    // mockCoreInputs({})
   })
 
   afterEach(() => {
@@ -78,7 +81,21 @@ describe('main.ts', () => {
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
   })
 
-  it('Sets a failed status', async () => {
+  it('Sets a failed status if no token is provided and one is needed', async () => {
+    // Clear the getInput mock and return an invalid value.
+    mockCoreInputs({
+      token: ''
+    })
+
+    await run()
+
+    // Verify that the action was marked as failed.
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'token is required when checking tags or releases'
+    )
+  })
+
+  it('Sets a failed status if an invalid token is provided', async () => {
     // Clear the getInput mock and return an invalid value.
     mockCoreInputs({
       token: 'invalid token'

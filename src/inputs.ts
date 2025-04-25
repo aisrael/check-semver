@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
 import github from '@actions/github'
 
+import { log } from 'console'
+
 export interface Input {
   /**
    * The version or tag to validate
@@ -46,8 +48,14 @@ export interface Input {
 export function getInputs(): Input {
   const version = core.getInput('version', { required: true })
 
-  const checkTags = core.getBooleanInput('check_tags')
-  const checkReleases = core.getBooleanInput('check_releases')
+  const check_tags = getOptionalBooleanInput('check_tags')
+  log(`check_tags: ${check_tags}`)
+  const checkTags = check_tags === null ? false : check_tags
+
+  const check_releases = getOptionalBooleanInput('check_releases')
+  log(`check_releases: ${check_releases}`)
+  const checkReleases = check_releases === null ? false : check_releases
+
   const token = core.getInput('token')
   if (checkTags || checkReleases) {
     if (!token) {
@@ -75,4 +83,20 @@ export function getInputs(): Input {
     prefix: core.getInput('prefix'),
     suffix: core.getInput('suffix')
   }
+}
+
+/**
+ * Gets an optional boolean input. If the input is not set, returns null. `core.getBooleanInput` throws
+ * an error if the input is not set.
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   boolean | null
+ */
+function getOptionalBooleanInput(name: string): boolean | null {
+  const trueValue = ['true', 'True', 'TRUE']
+  const falseValue = ['false', 'False', 'FALSE']
+  const val = core.getInput(name)
+  if (trueValue.includes(val)) return true
+  if (falseValue.includes(val)) return false
+  return null
 }

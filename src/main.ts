@@ -45,8 +45,6 @@ export async function run(): Promise<void> {
     core.setOutput('valid', valid.toString())
   } catch (error) {
     if (error instanceof Error) {
-      console.error(`Error: ${error.message}`)
-      console.error(error.stack)
       // Fail the workflow run if an error occurs
       core.setFailed(error.message)
     }
