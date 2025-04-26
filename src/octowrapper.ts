@@ -7,13 +7,17 @@ const octokit = new Octokit()
 type ListTagsResponseDataType = GetResponseDataTypeFromEndpointMethod<
   typeof octokit.repos.listTags
 >
+type ListReleasesResponseDataType = GetResponseDataTypeFromEndpointMethod<
+  typeof octokit.repos.listReleases
+>
 
 import { log } from 'console'
 
 type GitHubType = InstanceType<typeof GitHub>
 
 /**
- * We wrap the actual call(s) to octokit just so its easier to mock in tests, rather than having to mock the entire octokit instance.
+ * Wrapper around octokit.rest.repos.listTags.
+ * We wrap the actual call(s) to octokit just so it's easier to mock in tests, rather than having to mock the entire octokit instance.
  * @param octokit the octokit instance to use
  * @param owner the owner of the repository
  * @param repo the repository name
@@ -23,8 +27,28 @@ export async function fetchRepoTags(
   owner: string,
   repo: string
 ): Promise<ListTagsResponseDataType> {
-  log(`Fetching tags for ${owner}/${repo}`)
+  log(`fetchRepoTags(${owner}, ${repo})`)
   return await octokit.paginate(octokit.rest.repos.listTags, {
+    owner,
+    repo,
+    per_page: 100
+  })
+}
+
+/**
+ * Wrapper around octokit.rest.repos.listReleases.
+ * We wrap the actual call(s) to octokit just so it's easier to mock in tests, rather than having to mock the entire octokit instance.
+ @param octokit the octokit instance to use
+ @param owner the owner of the repository
+ @param repo the repository name
+ */
+export async function fetchRepoReleases(
+  octokit: GitHubType,
+  owner: string,
+  repo: string
+): Promise<ListReleasesResponseDataType> {
+  log(`fetchRepoReleases(${owner}, ${repo})`)
+  return await octokit.paginate(octokit.rest.repos.listReleases, {
     owner,
     repo,
     per_page: 100

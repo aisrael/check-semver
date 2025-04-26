@@ -6,19 +6,24 @@
  * so that the actual '@actions/core' module is not imported.
  */
 import { jest } from '@jest/globals'
+import { createHash } from 'crypto'
+
 import * as core from '../__fixtures__/core.js'
-import { fetchRepoTags } from '../__fixtures__/octowrapper.js'
+import {
+  fetchRepoTags,
+  fetchRepoReleases
+} from '../__fixtures__/octowrapper.js'
 
 import { log } from 'console'
 
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 jest.unstable_mockModule('../src/octowrapper.js', () => ({
-  fetchRepoTags
+  fetchRepoTags, fetchRepoReleases
 }))
 
 const defaultInputs: Record<string, string> = {
-  version: 'v0.1.234',
+  version: '0.10.1',
   token: process.env.GITHUB_TOKEN || '',
   check_tags: 'true',
   check_releases: 'true',
@@ -43,24 +48,53 @@ function mockCoreInputs(inputs: Record<string, string>) {
 // mocks are used in place of any actual dependencies.
 const { run } = await import('../src/main.js')
 
+/**
+ * Generate a fake Git hash (SHA1)
+ */
+function fakeGitHash(s: string) {
+  return createHash('sha1').update(s).digest('hex')
+}
+
+/**
+ * Just a factory to synthesize tags
+ */
+function fakeTag(name: string) {
+  const sha = fakeGitHash(name)
+  return {
+    name,
+    zipball_url: `https://api.github.com/repos/aisrael/sandbox/zipball/refs/tags/${name}`,
+    tarball_url: `https://api.github.com/repos/aisrael/sandbox/tarball/refs/tags/${name}`,
+    commit: {
+      sha,
+      url: `https://api.github.com/repos/aisrael/sandbox/commits/${sha}`
+    },
+    node_id: 'REF_dQw8RcmV_bRyZWZzL3RhZ3MvY2xpLXYwLjAuOA'
+  }
+}
+
+/**
+ * A factory to synthesize releases
+ */
+function fakeRelease(name: string) {
+  return {
+    name
+  }
+}
+
 describe('main.ts', () => {
   beforeEach(() => {
     fetchRepoTags.mockImplementation(() => {
       // log(`fetchRepoTags(octokit, ${owner}, ${repo})`)
       return Promise.resolve([
-        {
-          name: 'v0.1.234',
-          zipball_url:
-            'https://api.github.com/repos/aisrael/sandbox/zipball/refs/tags/v0.1.234',
-          tarball_url:
-            'https://api.github.com/repos/aisrael/sandbox/tarball/refs/tags/v0.1.234',
-          commit: {
-            sha: '9d2c208b1fb26d48643b528202478ac8e441bdc4',
-            url: 'https://api.github.com/repos/aisrael/sandbox/commits/9d2c208b1fb26d48643b528202478ac8e441bdc4'
-          },
-          node_id: 'REF_dQw8RcmV_bRyZWZzL3RhZ3MvY2xpLXYwLjAuOA'
-        }
+        fakeTag('0.10.1'),
+        fakeTag('0.9.2'),
+        fakeTag('0.1.3'),
+        fakeTag('cli-0.1.2')
       ])
+    })
+    // @ts-ignore
+    fetchRepoReleases.mockImplementation(() => {
+      return Promise.resolve([fakeRelease('0.10.1')])
     })
   })
 
@@ -121,6 +155,10 @@ describe('main.ts', () => {
       token: 'invalid token'
     })
 
+    fetchRepoTags.mockImplementation(() => {
+      throw new Error('Bad credentials - https://docs.github.com/rest')
+    })
+
     await run()
 
     // Verify that the action was marked as failed.
@@ -131,6 +169,29 @@ describe('main.ts', () => {
 
   it("Checks that the version isn't an existing tag", async () => {
     mockCoreInputs({})
+
+    await run()
+    expect(fetchRepoTags).toHaveBeenCalled()
+
+    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+  })
+
+  it('Checks that the new version is SemVer higher than the latest tag', async () => {
+    mockCoreInputs({
+      version: '0.10.0'
+    })
+
+    await run()
+    expect(fetchRepoTags).toHaveBeenCalled()
+
+    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+  })
+
+  it('Supports prefixes on tag', async () => {
+    mockCoreInputs({
+      version: 'cli-0.1.2',
+      prefix: 'cli-'
+    })
 
     await run()
     expect(fetchRepoTags).toHaveBeenCalled()
