@@ -11,7 +11,8 @@ branding:
 inputs:
   version:
     description: >
-      The version or tag to check if a valid SemVer. Accepts '1.2.3', 'v1.2.3', and 'v1.2.3-beta.4'
+      The version or tag to check if a valid SemVer. Accepts '1.2.3', 'v1.2.3',
+      and 'v1.2.3-beta.4'
     required: true
   token:
     description: >
@@ -19,18 +20,21 @@ inputs:
     required: false
   repository:
     description: >
-      Repository name with owner. For example, aisrael/check-semver. Defaults to the workflow's repository
+      Repository name with owner. For example, aisrael/check-semver. Defaults to
+      the workflow's repository
     default: ${{ github.repository }}
   check_tags:
     description: >
-      Set to "true" to check that this new version is SemVer higher than existing tags
+      Set to "true" to check that this new version is SemVer higher than
+      existing tags
     required: false
-    default: "true"
+    default: 'true'
   check_releases:
     description: >
-      Set to "true" to check that this new version is SemVer higher than existing releases
+      Set to "true" to check that this new version is SemVer higher than
+      existing releases
     required: false
-    default: "true"
+    default: 'true'
   prefix:
     description: >
       An optional prefix to prepend to the SemVer. For example, "cli-"
@@ -44,7 +48,7 @@ inputs:
 outputs:
   valid:
     description: >
-      Whether the version is valid, and, is SemVer 
+      Whether the version is valid, and, is SemVer
 
 runs:
   using: node20

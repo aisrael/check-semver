@@ -19,7 +19,8 @@ import { log } from 'console'
 // Mocks should be declared before the module being tested is imported.
 jest.unstable_mockModule('@actions/core', () => core)
 jest.unstable_mockModule('../src/octowrapper.js', () => ({
-  fetchRepoTags, fetchRepoReleases
+  fetchRepoTags,
+  fetchRepoReleases
 }))
 
 const defaultInputs: Record<string, string> = {
