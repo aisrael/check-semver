@@ -6,11 +6,14 @@
 [![CodeQL](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
-This is a GitHub Action that can be used to check that the `version` input is a valid SemVer version.
+This is a GitHub Action that can be used to check that the `version` input is a
+valid SemVer version.
 
-It can also be used to check that the `version` has the expected `prefix` and/or `suffix`.
+It can also be used to check that the `version` has the expected `prefix` and/or
+`suffix`.
 
 It can also be instructed to check tags and releases, such that:
+
 - The tag or release with the same name as the `version` does not already exist
 - The `version` is SemVer higher than the highest existing tag or release
 
@@ -18,21 +21,21 @@ It can also be instructed to check tags and releases, such that:
 
 ### Inputs
 
-| Input            | Description                                        | Required                                         | Default Value |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------ | ------------- |
-| `version`        | The version to check                               | Yes                                              | None          |
-| `prefix`         | The prefix to check                                | No                                               | None          |
-| `suffix`         | The suffix to check                                | No                                               | None          |
-| `check_tags`     | Whether to check tags                              | No                                               | `"false"`     |
-| `check_releases` | Whether to check releases                          | No                                               | `"false"`     |
-| `token`          | The GitHub token needed to check tags or releases  | Yes, if `check_tags` or `check_releases` is true | None          |
+| Input            | Description                                       | Required                                         | Default Value |
+| ---------------- | ------------------------------------------------- | ------------------------------------------------ | ------------- |
+| `version`        | The version to check                              | Yes                                              | None          |
+| `prefix`         | The prefix to check                               | No                                               | None          |
+| `suffix`         | The suffix to check                               | No                                               | None          |
+| `check_tags`     | Whether to check tags                             | No                                               | `"false"`     |
+| `check_releases` | Whether to check releases                         | No                                               | `"false"`     |
+| `token`          | The GitHub token needed to check tags or releases | Yes, if `check_tags` or `check_releases` is true | None          |
 
 ### Outputs
 
-| Output    | Description                  | Value                      |
-| --------- | ---------------------------- | -------------------------- |
-| `valid`   | Whether the version is valid | `true` or `false`          |
-| `message` | A message about the result   | See below                  |
+| Output    | Description                  | Value             |
+| --------- | ---------------------------- | ----------------- |
+| `valid`   | Whether the version is valid | `true` or `false` |
+| `message` | A message about the result   | See below         |
 
 ## Usage
 
