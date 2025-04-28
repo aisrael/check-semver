@@ -1,3 +1,4 @@
+import * as core from '@actions/core'
 import { GitHub } from '@actions/github/lib/utils'
 import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
 import { Octokit } from '@octokit/rest'
@@ -10,8 +11,6 @@ type ListTagsResponseDataType = GetResponseDataTypeFromEndpointMethod<
 type ListReleasesResponseDataType = GetResponseDataTypeFromEndpointMethod<
   typeof octokit.repos.listReleases
 >
-
-import { log } from 'console'
 
 type GitHubType = InstanceType<typeof GitHub>
 
@@ -27,7 +26,7 @@ export async function fetchRepoTags(
   owner: string,
   repo: string
 ): Promise<ListTagsResponseDataType> {
-  log(`fetchRepoTags(${owner}, ${repo})`)
+  core.debug(`fetchRepoTags(${owner}, ${repo})`)
   return await octokit.paginate(octokit.rest.repos.listTags, {
     owner,
     repo,
@@ -47,7 +46,7 @@ export async function fetchRepoReleases(
   owner: string,
   repo: string
 ): Promise<ListReleasesResponseDataType> {
-  log(`fetchRepoReleases(${owner}, ${repo})`)
+  core.debug(`fetchRepoReleases(${owner}, ${repo})`)
   return await octokit.paginate(octokit.rest.repos.listReleases, {
     owner,
     repo,

@@ -2,10 +2,10 @@ import * as core from '@actions/core'
 import github from '@actions/github'
 import { GitHub } from '@actions/github/lib/utils'
 
-import { log } from 'console'
 import { getInputs, Input } from './inputs.js'
 import * as semver from 'semver'
 import { fetchRepoTags, fetchRepoReleases } from './octowrapper.js'
+import { isValidTagName } from './tag_filter.js'
 
 type GitHubType = InstanceType<typeof GitHub>
 
@@ -16,19 +16,16 @@ type GitHubType = InstanceType<typeof GitHub>
  */
 export async function run(): Promise<void> {
   try {
-    log('Starting action...')
-
     const inputs = getInputs()
-    log(`inputs: ${JSON.stringify(inputs)}`)
+    core.debug(`inputs: ${JSON.stringify(inputs)}`)
 
     const version = inputs.version
-    log(`Validating version '${version}'`)
+    core.debug(`Validating version '${version}'`)
     const isValidSemVer = semver.valid(version) !== null
 
     if (inputs.checkTags || inputs.checkReleases) {
       const lastFourChars = inputs.token.slice(-4)
       core.debug(`Using token: ...${lastFourChars}`)
-      log(`Using token: ...${lastFourChars}`)
     }
 
     const octokit =
@@ -37,15 +34,15 @@ export async function run(): Promise<void> {
         : null
 
     const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true
-    log(`tagsOk: ${tagsOk.toString()}`)
+    core.debug(`tagsOk: ${tagsOk.toString()}`)
 
     const releaseOk = inputs.checkReleases
       ? await checkReleases(inputs, octokit)
       : true
-    log(`releaseOk: ${releaseOk.toString()}`)
+    core.debug(`releaseOk: ${releaseOk.toString()}`)
 
     const valid = isValidSemVer && tagsOk && releaseOk
-    log(`Valid: ${valid.toString()}`)
+    core.debug(`Valid: ${valid.toString()}`)
 
     // Set outputs for other workflow steps to use
     core.setOutput('valid', valid.toString())
@@ -70,29 +67,22 @@ async function checkTags(
   const repo = inputs.repo
 
   core.debug(`Listing tags for ${owner}/${repo}`)
-  log(`Listing tags for ${owner}/${repo}`)
 
   // List all tags
   const allTags = await fetchRepoTags(octokit, owner, repo)
   core.debug(`Found ${allTags.length} total tags`)
-  log(`Found ${allTags.length} total tags`)
 
-  const tags = allTags.filter((tag) => {
-    const name = tag.name
-    return (
-      (inputs.prefix ? name.startsWith(inputs.prefix) : true) &&
-      (inputs.suffix ? name.endsWith(inputs.suffix) : true)
-    )
-  })
+  const tags = allTags.filter((tag) =>
+    isValidTagName(inputs.prefix, inputs.suffix, tag.name)
+  )
   core.debug(`Found ${tags.length} tags matching prefix/suffix`)
-  log(`Found ${tags.length} tags matching prefix/suffix`)
 
   for (const tag of tags) {
-    log(JSON.stringify(tag))
+    core.debug(tag.name)
   }
 
   if (tags.find((tag) => tag.name === inputs.version)) {
-    log(`Found tag matching version: ${inputs.version}`)
+    core.debug(`Found tag matching version: ${inputs.version}`)
     return false
   }
 
@@ -102,10 +92,10 @@ async function checkTags(
     ),
     '*'
   )
-  log(`highestTag: ${highestTag}`)
+  core.debug(`highestTag: ${highestTag}`)
   if (highestTag) {
     const greater = semver.gt(inputs.version, highestTag)
-    log(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
+    core.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
     return greater
   }
 
@@ -124,21 +114,23 @@ async function checkReleases(
   const repo = inputs.repo
 
   core.debug(`Listing releases for ${owner}/${repo}`)
-  log(`Listing releases for ${owner}/${repo}`)
 
-  const releases = await fetchRepoReleases(octokit, owner, repo)
+  const allReleases = await fetchRepoReleases(octokit, owner, repo)
+  const releases = allReleases.filter((release) =>
+    isValidTagName(inputs.prefix, inputs.suffix, release.name)
+  )
 
-  core.debug(`Found ${releases.length} releases`)
-  log(`Found ${releases.length} releases`)
+  core.debug(`Found ${releases.length} releases matching prefix/suffix`)
   for (const release of releases) {
-    log(JSON.stringify(release))
+    core.debug(release.name || '(null)')
   }
 
   if (releases.find((release) => release.name === inputs.version)) {
+    core.debug(`Found release matching version: ${inputs.version}`)
     return false
   }
 
-  const releaseNames = releases
+  const releaseVersions = releases
     .filter((release) => release.name)
     .map((release) =>
       stripSuffix(
@@ -147,11 +139,11 @@ async function checkReleases(
       )
     )
 
-  const highestRelease = semver.maxSatisfying(releaseNames, '*')
-  log(`highestRelease: ${highestRelease}`)
+  const highestRelease = semver.maxSatisfying(releaseVersions, '*')
+  core.debug(`highestRelease: ${highestRelease}`)
   if (highestRelease) {
     const greater = semver.gt(inputs.version, highestRelease)
-    log(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
+    core.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
     return greater
   }
 

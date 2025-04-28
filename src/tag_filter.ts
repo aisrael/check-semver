@@ -3,8 +3,9 @@ import semver from 'semver'
 export function isValidTagName(
   prefix: string | null,
   suffix: string | null,
-  name: string
+  name: string | null
 ) {
+  if (name === null) return false
   if (prefix && !name.startsWith(prefix)) return false
   if (suffix && !name.endsWith(suffix)) return false
   const semverOnly = stripPrefix(stripSuffix(name, suffix), prefix)

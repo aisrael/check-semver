@@ -31631,11 +31631,11 @@ function requireIdentifiers () {
 	return identifiers;
 }
 
-var semver$1;
+var semver$2;
 var hasRequiredSemver$1;
 
 function requireSemver$1 () {
-	if (hasRequiredSemver$1) return semver$1;
+	if (hasRequiredSemver$1) return semver$2;
 	hasRequiredSemver$1 = 1;
 	const debug = requireDebug();
 	const { MAX_LENGTH, MAX_SAFE_INTEGER } = requireConstants();
@@ -31954,8 +31954,8 @@ function requireSemver$1 () {
 	  }
 	}
 
-	semver$1 = SemVer;
-	return semver$1;
+	semver$2 = SemVer;
+	return semver$2;
 }
 
 var parse_1;
@@ -33837,11 +33837,11 @@ function requireSubset () {
 	return subset_1;
 }
 
-var semver;
+var semver$1;
 var hasRequiredSemver;
 
 function requireSemver () {
-	if (hasRequiredSemver) return semver;
+	if (hasRequiredSemver) return semver$1;
 	hasRequiredSemver = 1;
 	// just pre-load all the stuff that index.js lazily exports
 	const internalRe = requireRe();
@@ -33885,7 +33885,7 @@ function requireSemver () {
 	const intersects = requireIntersects();
 	const simplifyRange = requireSimplify();
 	const subset = requireSubset();
-	semver = {
+	semver$1 = {
 	  parse,
 	  valid,
 	  clean,
@@ -33932,10 +33932,11 @@ function requireSemver () {
 	  compareIdentifiers: identifiers.compareIdentifiers,
 	  rcompareIdentifiers: identifiers.rcompareIdentifiers,
 	};
-	return semver;
+	return semver$1;
 }
 
 var semverExports = requireSemver();
+var semver = /*@__PURE__*/getDefaultExportFromCjs(semverExports);
 
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
@@ -37478,7 +37479,7 @@ new Octokit();
  * @param repo the repository name
  */
 async function fetchRepoTags(octokit, owner, repo) {
-    log(`fetchRepoTags(${owner}, ${repo})`);
+    coreExports.debug(`fetchRepoTags(${owner}, ${repo})`);
     return await octokit.paginate(octokit.rest.repos.listTags, {
         owner,
         repo,
@@ -37493,13 +37494,28 @@ async function fetchRepoTags(octokit, owner, repo) {
  @param repo the repository name
  */
 async function fetchRepoReleases(octokit, owner, repo) {
-    log(`fetchRepoReleases(${owner}, ${repo})`);
+    coreExports.debug(`fetchRepoReleases(${owner}, ${repo})`);
     return await octokit.paginate(octokit.rest.repos.listReleases, {
         owner,
         repo,
         per_page: 100
     });
 }
+
+function isValidTagName(prefix, suffix, name) {
+    if (name === null)
+        return false;
+    if (prefix && !name.startsWith(prefix))
+        return false;
+    if (suffix && !name.endsWith(suffix))
+        return false;
+    const semverOnly = stripPrefix$1(stripSuffix$1(name, suffix), prefix);
+    if (semverOnly === '')
+        return false;
+    return semver.valid(semverOnly) !== null;
+}
+const stripPrefix$1 = (name, prefix) => prefix ? name.slice(prefix.length) : name;
+const stripSuffix$1 = (name, suffix) => suffix ? name.slice(0, -suffix.length) : name;
 
 /**
  * The main function for the action.
@@ -37508,28 +37524,26 @@ async function fetchRepoReleases(octokit, owner, repo) {
  */
 async function run() {
     try {
-        log('Starting action...');
         const inputs = getInputs();
-        log(`inputs: ${JSON.stringify(inputs)}`);
+        coreExports.debug(`inputs: ${JSON.stringify(inputs)}`);
         const version = inputs.version;
-        log(`Validating version '${version}'`);
+        coreExports.debug(`Validating version '${version}'`);
         const isValidSemVer = semverExports.valid(version) !== null;
         if (inputs.checkTags || inputs.checkReleases) {
             const lastFourChars = inputs.token.slice(-4);
             coreExports.debug(`Using token: ...${lastFourChars}`);
-            log(`Using token: ...${lastFourChars}`);
         }
         const octokit = inputs.checkTags || inputs.checkReleases
             ? github.getOctokit(inputs.token)
             : null;
         const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true;
-        log(`tagsOk: ${tagsOk.toString()}`);
+        coreExports.debug(`tagsOk: ${tagsOk.toString()}`);
         const releaseOk = inputs.checkReleases
             ? await checkReleases(inputs, octokit)
             : true;
-        log(`releaseOk: ${releaseOk.toString()}`);
+        coreExports.debug(`releaseOk: ${releaseOk.toString()}`);
         const valid = isValidSemVer && tagsOk && releaseOk;
-        log(`Valid: ${valid.toString()}`);
+        coreExports.debug(`Valid: ${valid.toString()}`);
         // Set outputs for other workflow steps to use
         coreExports.setOutput('valid', valid.toString());
     }
@@ -37548,30 +37562,23 @@ async function checkTags(inputs, octokit) {
     const owner = inputs.owner;
     const repo = inputs.repo;
     coreExports.debug(`Listing tags for ${owner}/${repo}`);
-    log(`Listing tags for ${owner}/${repo}`);
     // List all tags
     const allTags = await fetchRepoTags(octokit, owner, repo);
     coreExports.debug(`Found ${allTags.length} total tags`);
-    log(`Found ${allTags.length} total tags`);
-    const tags = allTags.filter((tag) => {
-        const name = tag.name;
-        return ((inputs.prefix ? name.startsWith(inputs.prefix) : true) &&
-            (inputs.suffix ? name.endsWith(inputs.suffix) : true));
-    });
+    const tags = allTags.filter((tag) => isValidTagName(inputs.prefix, inputs.suffix, tag.name));
     coreExports.debug(`Found ${tags.length} tags matching prefix/suffix`);
-    log(`Found ${tags.length} tags matching prefix/suffix`);
     for (const tag of tags) {
-        log(JSON.stringify(tag));
+        coreExports.debug(tag.name);
     }
     if (tags.find((tag) => tag.name === inputs.version)) {
-        log(`Found tag matching version: ${inputs.version}`);
+        coreExports.debug(`Found tag matching version: ${inputs.version}`);
         return false;
     }
     const highestTag = semverExports.maxSatisfying(tags.map((tag) => stripSuffix(stripPrefix(tag.name, inputs.prefix), inputs.suffix)), '*');
-    log(`highestTag: ${highestTag}`);
+    coreExports.debug(`highestTag: ${highestTag}`);
     if (highestTag) {
         const greater = semverExports.gt(inputs.version, highestTag);
-        log(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
+        coreExports.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
         return greater;
     }
     return true;
@@ -37583,24 +37590,24 @@ async function checkReleases(inputs, octokit) {
     const owner = inputs.owner;
     const repo = inputs.repo;
     coreExports.debug(`Listing releases for ${owner}/${repo}`);
-    log(`Listing releases for ${owner}/${repo}`);
-    const releases = await fetchRepoReleases(octokit, owner, repo);
-    coreExports.debug(`Found ${releases.length} releases`);
-    log(`Found ${releases.length} releases`);
+    const allReleases = await fetchRepoReleases(octokit, owner, repo);
+    const releases = allReleases.filter((release) => isValidTagName(inputs.prefix, inputs.suffix, release.name));
+    coreExports.debug(`Found ${releases.length} releases matching prefix/suffix`);
     for (const release of releases) {
-        log(JSON.stringify(release));
+        coreExports.debug(release.name || '(null)');
     }
     if (releases.find((release) => release.name === inputs.version)) {
+        coreExports.debug(`Found release matching version: ${inputs.version}`);
         return false;
     }
-    const releaseNames = releases
+    const releaseVersions = releases
         .filter((release) => release.name)
         .map((release) => stripSuffix(stripPrefix(release.name, inputs.prefix), inputs.suffix));
-    const highestRelease = semverExports.maxSatisfying(releaseNames, '*');
-    log(`highestRelease: ${highestRelease}`);
+    const highestRelease = semverExports.maxSatisfying(releaseVersions, '*');
+    coreExports.debug(`highestRelease: ${highestRelease}`);
     if (highestRelease) {
         const greater = semverExports.gt(inputs.version, highestRelease);
-        log(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
+        coreExports.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
         return greater;
     }
     return true;
