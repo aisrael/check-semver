@@ -179,11 +179,12 @@ describe('main.ts', () => {
     await run()
     expect(fetchRepoTags).toHaveBeenCalled()
 
-    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
-    expect(core.setOutput).toHaveBeenCalledWith(
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
       'message',
       "Tag '0.10.1' already exists"
     )
+    expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'false')
   })
 
   it('Checks that the new version is SemVer higher than the latest tag', async () => {
@@ -194,11 +195,12 @@ describe('main.ts', () => {
     await run()
     expect(fetchRepoTags).toHaveBeenCalled()
 
-    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
-    expect(core.setOutput).toHaveBeenCalledWith(
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
       'message',
       "'0.10.0' is not SemVer higher than existing tag '0.10.1'"
     )
+    expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'false')
   })
 
   it('Supports prefixes on tag', async () => {
@@ -210,6 +212,11 @@ describe('main.ts', () => {
     await run()
     expect(fetchRepoTags).toHaveBeenCalled()
 
-    expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'message',
+      "Tag 'cli-0.1.2' already exists"
+    )
+    expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'false')
   })
 })

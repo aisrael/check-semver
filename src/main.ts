@@ -10,6 +10,15 @@ import { isValidTagName } from './tag_filter.js'
 type GitHubType = InstanceType<typeof GitHub>
 
 /**
+ * We wrap core.debug so we can add a console.log during local development and testing
+ *
+ * @param message The message to log
+ */
+function debug(message: string) {
+  core.debug(message)
+}
+
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -17,32 +26,33 @@ type GitHubType = InstanceType<typeof GitHub>
 export async function run(): Promise<void> {
   try {
     const inputs = getInputs()
-    core.debug(`inputs: ${JSON.stringify(inputs)}`)
+    debug(`inputs: ${JSON.stringify(inputs)}`)
 
     const version = inputs.version
-    core.debug(`Validating version '${version}'`)
+    core.info(`Validating version '${version}'`)
+
     const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version)
     if (!isValidSemVer) {
       core.setOutput('valid', 'false')
       if (inputs.prefix && !version.startsWith(inputs.prefix)) {
-        core.setOutput(
-          'message',
-          `'${version}' does not start with prefix '${inputs.prefix}'`
-        )
+        const message = `'${version}' does not start with prefix '${inputs.prefix}'`
+        core.setOutput('message', message)
+        core.notice(message)
       } else if (inputs.suffix && !version.endsWith(inputs.suffix)) {
-        core.setOutput(
-          'message',
-          `'${version}' does not end with suffix '${inputs.suffix}'`
-        )
+        const message = `'${version}' does not end with suffix '${inputs.suffix}'`
+        core.setOutput('message', message)
+        core.notice(message)
       } else {
-        core.setOutput('message', `'${version}' is not a valid SemVer`)
+        const message = `'${version}' is not a valid SemVer`
+        core.setOutput('message', message)
+        core.notice(message)
       }
       return
     }
 
     if (inputs.checkTags || inputs.checkReleases) {
       const lastFourChars = inputs.token.slice(-4)
-      core.debug(`Using token: ...${lastFourChars}`)
+      debug(`Using token: ...${lastFourChars}`)
     }
 
     const octokit =
@@ -51,23 +61,24 @@ export async function run(): Promise<void> {
         : null
 
     const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true
-    core.debug(`tagsOk: ${tagsOk.toString()}`)
+    debug(`tagsOk: ${tagsOk.toString()}`)
 
     const releaseOk = tagsOk
       ? inputs.checkReleases
         ? await checkReleases(inputs, octokit)
         : true
       : false
-    core.debug(`releaseOk: ${releaseOk.toString()}`)
+    debug(`releaseOk: ${releaseOk.toString()}`)
 
     const valid = isValidSemVer && tagsOk && releaseOk
-    core.debug(`Valid: ${valid.toString()}`)
+    debug(`Valid: ${valid.toString()}`)
 
     // Set outputs for other workflow steps to use
-    core.setOutput('valid', valid.toString())
     if (valid) {
       core.setOutput('message', 'Version is valid')
+      core.info('Version is valid')
     }
+    core.setOutput('valid', valid.toString())
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message)
@@ -88,24 +99,26 @@ async function checkTags(
   const owner = inputs.owner
   const repo = inputs.repo
 
-  core.debug(`Listing tags for ${owner}/${repo}`)
+  debug(`Listing tags for ${owner}/${repo}`)
 
   // List all tags
   const allTags = await fetchRepoTags(octokit, owner, repo)
-  core.debug(`Found ${allTags.length} total tags`)
+  debug(`Found ${allTags.length} total tags`)
 
   const tags = allTags.filter((tag) =>
     isValidTagName(inputs.prefix, inputs.suffix, tag.name)
   )
-  core.debug(`Found ${tags.length} tags matching prefix/suffix`)
+  debug(`Found ${tags.length} tags matching prefix/suffix`)
 
   for (const tag of tags) {
-    core.debug(tag.name)
+    debug(tag.name)
   }
 
   if (tags.find((tag) => tag.name === inputs.version)) {
-    core.debug(`Found tag matching version: ${inputs.version}`)
-    core.setOutput('message', `Tag '${inputs.version}' already exists`)
+    debug(`Found tag matching version: ${inputs.version}`)
+    const message = `Tag '${inputs.version}' already exists`
+    core.setOutput('message', message)
+    core.notice(message)
     return false
   }
 
@@ -115,15 +128,14 @@ async function checkTags(
     ),
     '*'
   )
-  core.debug(`highestTag: ${highestTag}`)
+  debug(`highestTag: ${highestTag}`)
   if (highestTag) {
     const greater = semver.gt(inputs.version, highestTag)
-    core.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
+    debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
     if (!greater) {
-      core.setOutput(
-        'message',
-        `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`
-      )
+      const message = `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`
+      core.setOutput('message', message)
+      core.notice(message)
       return false
     }
   }
@@ -142,21 +154,23 @@ async function checkReleases(
   const owner = inputs.owner
   const repo = inputs.repo
 
-  core.debug(`Listing releases for ${owner}/${repo}`)
+  debug(`Listing releases for ${owner}/${repo}`)
 
   const allReleases = await fetchRepoReleases(octokit, owner, repo)
   const releases = allReleases.filter((release) =>
     isValidTagName(inputs.prefix, inputs.suffix, release.name)
   )
 
-  core.debug(`Found ${releases.length} releases matching prefix/suffix`)
+  debug(`Found ${releases.length} releases matching prefix/suffix`)
   for (const release of releases) {
-    core.debug(release.name || '(null)')
+    debug(release.name || '(null)')
   }
 
   if (releases.find((release) => release.name === inputs.version)) {
-    core.debug(`Found release matching version: ${inputs.version}`)
-    core.setOutput('message', `Release '${inputs.version}' already exists`)
+    debug(`Found release matching version: ${inputs.version}`)
+    const message = `Release '${inputs.version}' already exists`
+    core.setOutput('message', message)
+    core.notice(message)
     return false
   }
 
@@ -170,15 +184,14 @@ async function checkReleases(
     )
 
   const highestRelease = semver.maxSatisfying(releaseVersions, '*')
-  core.debug(`highestRelease: ${highestRelease}`)
+  debug(`highestRelease: ${highestRelease}`)
   if (highestRelease) {
     const greater = semver.gt(inputs.version, highestRelease)
-    core.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
+    debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
     if (!greater) {
-      core.setOutput(
-        'message',
-        `Release 'Tag ${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`
-      )
+      const message = `Release '${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`
+      core.setOutput('message', message)
+      core.notice(message)
       return false
     }
   }
