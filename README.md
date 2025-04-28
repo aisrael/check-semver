@@ -18,13 +18,13 @@ It can also be instructed to check tags and releases, such that:
 
 ### Inputs
 
-| Input            | Description                                        | Required                                     | Default Value |
-| ---------------- | -------------------------------------------------- | -------------------------------------------- | ------------- |
-| `version`        | The version to check                               | Yes                                          | None          |
-| `prefix`         | The prefix to check                                | No                                           | None          |
-| `suffix`         | The suffix to check                                | No                                           | None          |
-| `check_tags`     | Whether to check tags                              | No                                           | "false"       |
-| `check_releases` | Whether to check releases                          | No                                           | "false"       |
+| Input            | Description                                        | Required                                         | Default Value |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------ | ------------- |
+| `version`        | The version to check                               | Yes                                              | None          |
+| `prefix`         | The prefix to check                                | No                                               | None          |
+| `suffix`         | The suffix to check                                | No                                               | None          |
+| `check_tags`     | Whether to check tags                              | No                                               | `"false"`     |
+| `check_releases` | Whether to check releases                          | No                                               | `"false"`     |
 | `token`          | The GitHub token needed to check tags or releases  | Yes, if `check_tags` or `check_releases` is true | None          |
 
 ### Outputs
