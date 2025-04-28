@@ -56,7 +56,7 @@ It can also be instructed to check tags and releases, such that:
     prefix: 'cli-'
 ```
 
-### Check that a version is a valid SemVer and has the expected prefix and suffix, and that the version is SemVer higher than the highest existing tag or release
+### Check that the version is not an existing tag, and is SemVer higher than the highest existing tag or release
 
 ```yaml
 - name: Check version
@@ -64,13 +64,10 @@ It can also be instructed to check tags and releases, such that:
   uses: aisrael/check-semver@v1
   with:
     version: ${{ inputs.version }}
-    prefix: 'v'
-    suffix: '-hotfix'
     check_tags: true
-    check_releases: true
 ```
 
-### Check that a version is a valid SemVer and has the expected prefix and suffix, and that the version is SemVer higher than the highest existing tag or release
+### Check that the version is not an existing tag or release, and is SemVer higher than the highest existing tag or release
 
 ```yaml
 - name: Check version
@@ -78,8 +75,6 @@ It can also be instructed to check tags and releases, such that:
   uses: aisrael/check-semver@v1
   with:
     version: ${{ inputs.version }}
-    prefix: 'v'
-    suffix: '-hotfix'
     check_tags: true
     check_releases: true
 ```
