@@ -31246,7 +31246,7 @@ function getInputs() {
     }
     const repository = coreExports.getInput('repository');
     // If repository is given, check that it's of the form 'owner/repo'
-    if (repository && !repository.match(/^\w+\/\w+$/)) {
+    if (repository && !repository.match(/^.+\/.+$/)) {
         throw new Error('repository must be in the form owner/repo');
     }
     // If no repository explicitly given, just use the github.context.repo.owner and .repo
