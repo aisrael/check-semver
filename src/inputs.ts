@@ -63,7 +63,6 @@ export function getInputs(): Input {
 
   const repository = core.getInput('repository')
   // If repository is given, check that it's of the form 'owner/repo'
-  core.debug(`repository: ${repository}`)
   if (repository && !repository.match(/^.+\/.+$/)) {
     throw new Error('repository must be in the form owner/repo')
   }
