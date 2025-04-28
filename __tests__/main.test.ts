@@ -28,7 +28,7 @@ const defaultInputs: Record<string, string> = {
   token: process.env.GITHUB_TOKEN || '',
   check_tags: 'true',
   check_releases: 'true',
-  repository: 'aisrael/sandbox',
+  repository: 'aisrael/check-semver',
   prefix: '',
   suffix: ''
 }
