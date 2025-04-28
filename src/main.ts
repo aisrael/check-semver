@@ -36,9 +36,11 @@ export async function run(): Promise<void> {
     const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true
     core.debug(`tagsOk: ${tagsOk.toString()}`)
 
-    const releaseOk = inputs.checkReleases
-      ? await checkReleases(inputs, octokit)
-      : true
+    const releaseOk = tagsOk
+      ? inputs.checkReleases
+        ? await checkReleases(inputs, octokit)
+        : true
+      : false
     core.debug(`releaseOk: ${releaseOk.toString()}`)
 
     const valid = isValidSemVer && tagsOk && releaseOk
