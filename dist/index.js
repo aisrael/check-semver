@@ -37518,6 +37518,14 @@ const stripPrefix$1 = (name, prefix) => prefix ? name.slice(prefix.length) : nam
 const stripSuffix$1 = (name, suffix) => suffix ? name.slice(0, -suffix.length) : name;
 
 /**
+ * We wrap core.debug so we can add a console.log during local development and testing
+ *
+ * @param message The message to log
+ */
+function debug(message) {
+    coreExports.debug(message);
+}
+/**
  * The main function for the action.
  *
  * @returns Resolves when the action is complete.
@@ -37525,45 +37533,52 @@ const stripSuffix$1 = (name, suffix) => suffix ? name.slice(0, -suffix.length) :
 async function run() {
     try {
         const inputs = getInputs();
-        coreExports.debug(`inputs: ${JSON.stringify(inputs)}`);
+        debug(`inputs: ${JSON.stringify(inputs)}`);
         const version = inputs.version;
-        coreExports.debug(`Validating version '${version}'`);
+        coreExports.info(`Validating version '${version}'`);
         const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version);
         if (!isValidSemVer) {
             coreExports.setOutput('valid', 'false');
             if (inputs.prefix && !version.startsWith(inputs.prefix)) {
-                coreExports.setOutput('message', `'${version}' does not start with prefix '${inputs.prefix}'`);
+                const message = `'${version}' does not start with prefix '${inputs.prefix}'`;
+                coreExports.setOutput('message', message);
+                coreExports.notice(message);
             }
             else if (inputs.suffix && !version.endsWith(inputs.suffix)) {
-                coreExports.setOutput('message', `'${version}' does not end with suffix '${inputs.suffix}'`);
+                const message = `'${version}' does not end with suffix '${inputs.suffix}'`;
+                coreExports.setOutput('message', message);
+                coreExports.notice(message);
             }
             else {
-                coreExports.setOutput('message', `'${version}' is not a valid SemVer`);
+                const message = `'${version}' is not a valid SemVer`;
+                coreExports.setOutput('message', message);
+                coreExports.notice(message);
             }
             return;
         }
         if (inputs.checkTags || inputs.checkReleases) {
             const lastFourChars = inputs.token.slice(-4);
-            coreExports.debug(`Using token: ...${lastFourChars}`);
+            debug(`Using token: ...${lastFourChars}`);
         }
         const octokit = inputs.checkTags || inputs.checkReleases
             ? github.getOctokit(inputs.token)
             : null;
         const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true;
-        coreExports.debug(`tagsOk: ${tagsOk.toString()}`);
+        debug(`tagsOk: ${tagsOk.toString()}`);
         const releaseOk = tagsOk
             ? inputs.checkReleases
                 ? await checkReleases(inputs, octokit)
                 : true
             : false;
-        coreExports.debug(`releaseOk: ${releaseOk.toString()}`);
+        debug(`releaseOk: ${releaseOk.toString()}`);
         const valid = isValidSemVer && tagsOk && releaseOk;
-        coreExports.debug(`Valid: ${valid.toString()}`);
+        debug(`Valid: ${valid.toString()}`);
         // Set outputs for other workflow steps to use
-        coreExports.setOutput('valid', valid.toString());
         if (valid) {
             coreExports.setOutput('message', 'Version is valid');
+            coreExports.info('Version is valid');
         }
+        coreExports.setOutput('valid', valid.toString());
     }
     catch (error) {
         if (error instanceof Error) {
@@ -37579,27 +37594,31 @@ async function checkTags(inputs, octokit) {
     }
     const owner = inputs.owner;
     const repo = inputs.repo;
-    coreExports.debug(`Listing tags for ${owner}/${repo}`);
+    debug(`Listing tags for ${owner}/${repo}`);
     // List all tags
     const allTags = await fetchRepoTags(octokit, owner, repo);
-    coreExports.debug(`Found ${allTags.length} total tags`);
+    debug(`Found ${allTags.length} total tags`);
     const tags = allTags.filter((tag) => isValidTagName(inputs.prefix, inputs.suffix, tag.name));
-    coreExports.debug(`Found ${tags.length} tags matching prefix/suffix`);
+    debug(`Found ${tags.length} tags matching prefix/suffix`);
     for (const tag of tags) {
-        coreExports.debug(tag.name);
+        debug(tag.name);
     }
     if (tags.find((tag) => tag.name === inputs.version)) {
-        coreExports.debug(`Found tag matching version: ${inputs.version}`);
-        coreExports.setOutput('message', `Tag '${inputs.version}' already exists`);
+        debug(`Found tag matching version: ${inputs.version}`);
+        const message = `Tag '${inputs.version}' already exists`;
+        coreExports.setOutput('message', message);
+        coreExports.notice(message);
         return false;
     }
     const highestTag = semverExports.maxSatisfying(tags.map((tag) => stripSuffix(stripPrefix(tag.name, inputs.prefix), inputs.suffix)), '*');
-    coreExports.debug(`highestTag: ${highestTag}`);
+    debug(`highestTag: ${highestTag}`);
     if (highestTag) {
         const greater = semverExports.gt(inputs.version, highestTag);
-        coreExports.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
+        debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
         if (!greater) {
-            coreExports.setOutput('message', `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`);
+            const message = `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`;
+            coreExports.setOutput('message', message);
+            coreExports.notice(message);
             return false;
         }
     }
@@ -37611,28 +37630,32 @@ async function checkReleases(inputs, octokit) {
     }
     const owner = inputs.owner;
     const repo = inputs.repo;
-    coreExports.debug(`Listing releases for ${owner}/${repo}`);
+    debug(`Listing releases for ${owner}/${repo}`);
     const allReleases = await fetchRepoReleases(octokit, owner, repo);
     const releases = allReleases.filter((release) => isValidTagName(inputs.prefix, inputs.suffix, release.name));
-    coreExports.debug(`Found ${releases.length} releases matching prefix/suffix`);
+    debug(`Found ${releases.length} releases matching prefix/suffix`);
     for (const release of releases) {
-        coreExports.debug(release.name || '(null)');
+        debug(release.name || '(null)');
     }
     if (releases.find((release) => release.name === inputs.version)) {
-        coreExports.debug(`Found release matching version: ${inputs.version}`);
-        coreExports.setOutput('message', `Release '${inputs.version}' already exists`);
+        debug(`Found release matching version: ${inputs.version}`);
+        const message = `Release '${inputs.version}' already exists`;
+        coreExports.setOutput('message', message);
+        coreExports.notice(message);
         return false;
     }
     const releaseVersions = releases
         .filter((release) => release.name)
         .map((release) => stripSuffix(stripPrefix(release.name, inputs.prefix), inputs.suffix));
     const highestRelease = semverExports.maxSatisfying(releaseVersions, '*');
-    coreExports.debug(`highestRelease: ${highestRelease}`);
+    debug(`highestRelease: ${highestRelease}`);
     if (highestRelease) {
         const greater = semverExports.gt(inputs.version, highestRelease);
-        coreExports.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
+        debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
         if (!greater) {
-            coreExports.setOutput('message', `Release 'Tag ${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`);
+            const message = `Release '${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`;
+            coreExports.setOutput('message', message);
+            coreExports.notice(message);
             return false;
         }
     }
