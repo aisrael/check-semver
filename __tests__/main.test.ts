@@ -203,7 +203,7 @@ describe('main.ts', () => {
     expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'false')
   })
 
-  it('Supports prefixes on tag', async () => {
+  it('Supports prefixes, validates existing tag', async () => {
     mockCoreInputs({
       version: 'cli-0.1.2',
       prefix: 'cli-'
@@ -218,5 +218,22 @@ describe('main.ts', () => {
       "Tag 'cli-0.1.2' already exists"
     )
     expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'false')
+  })
+
+  it('Supports prefixes, validates tag properly', async () => {
+    mockCoreInputs({
+      version: 'cli-0.1.3',
+      prefix: 'cli-'
+    })
+
+    await run()
+    expect(fetchRepoTags).toHaveBeenCalled()
+
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'message',
+      'Version is valid'
+    )
+    expect(core.setOutput).toHaveBeenNthCalledWith(2, 'valid', 'true')
   })
 })

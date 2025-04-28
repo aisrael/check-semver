@@ -37502,6 +37502,11 @@ async function fetchRepoReleases(octokit, owner, repo) {
     });
 }
 
+const stripPrefix = (name, prefix) => prefix ? name.slice(prefix.length) : name;
+const stripSuffix = (name, suffix) => suffix ? name.slice(0, -suffix.length) : name;
+function stripPrefixSuffix(name, prefix, suffix) {
+    return stripSuffix(stripPrefix(name, prefix), suffix);
+}
 function isValidTagName(prefix, suffix, name) {
     if (name === null)
         return false;
@@ -37509,13 +37514,11 @@ function isValidTagName(prefix, suffix, name) {
         return false;
     if (suffix && !name.endsWith(suffix))
         return false;
-    const semverOnly = stripPrefix$1(stripSuffix$1(name, suffix), prefix);
+    const semverOnly = stripPrefixSuffix(name, prefix, suffix);
     if (semverOnly === '')
         return false;
     return semver.valid(semverOnly) !== null;
 }
-const stripPrefix$1 = (name, prefix) => prefix ? name.slice(prefix.length) : name;
-const stripSuffix$1 = (name, suffix) => suffix ? name.slice(0, -suffix.length) : name;
 
 /**
  * We wrap core.debug so we can add a console.log during local development and testing
@@ -37610,11 +37613,12 @@ async function checkTags(inputs, octokit) {
         coreExports.notice(message);
         return false;
     }
-    const highestTag = semverExports.maxSatisfying(tags.map((tag) => stripSuffix(stripPrefix(tag.name, inputs.prefix), inputs.suffix)), '*');
+    const semverOnly = stripPrefixSuffix(inputs.version, inputs.prefix, inputs.suffix);
+    const highestTag = semverExports.maxSatisfying(tags.map((tag) => stripPrefixSuffix(tag.name, inputs.prefix, inputs.suffix)), '*');
     debug(`highestTag: ${highestTag}`);
     if (highestTag) {
-        const greater = semverExports.gt(inputs.version, highestTag);
-        debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
+        const greater = semverExports.gt(semverOnly, highestTag);
+        debug(`semver.gt(${semverOnly}, ${highestTag}): ${greater}`);
         if (!greater) {
             const message = `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`;
             coreExports.setOutput('message', message);
@@ -37646,12 +37650,13 @@ async function checkReleases(inputs, octokit) {
     }
     const releaseVersions = releases
         .filter((release) => release.name)
-        .map((release) => stripSuffix(stripPrefix(release.name, inputs.prefix), inputs.suffix));
+        .map((release) => stripPrefixSuffix(release.name, inputs.prefix, inputs.suffix));
+    const semverOnly = stripPrefixSuffix(inputs.version, inputs.prefix, inputs.suffix);
     const highestRelease = semverExports.maxSatisfying(releaseVersions, '*');
     debug(`highestRelease: ${highestRelease}`);
     if (highestRelease) {
-        const greater = semverExports.gt(inputs.version, highestRelease);
-        debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
+        const greater = semverExports.gt(semverOnly, highestRelease);
+        debug(`semver.gt(${semverOnly}, ${highestRelease}): ${greater}`);
         if (!greater) {
             const message = `Release '${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`;
             coreExports.setOutput('message', message);
@@ -37660,12 +37665,6 @@ async function checkReleases(inputs, octokit) {
         }
     }
     return true;
-}
-function stripPrefix(name, prefix) {
-    return prefix ? name.slice(prefix.length) : name;
-}
-function stripSuffix(name, suffix) {
-    return suffix ? name.slice(0, -suffix.length) : name;
 }
 
 /**

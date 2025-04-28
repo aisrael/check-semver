@@ -1,5 +1,18 @@
 import semver from 'semver'
 
+const stripPrefix = (name: string, prefix: string | null) =>
+  prefix ? name.slice(prefix.length) : name
+const stripSuffix = (name: string, suffix: string | null) =>
+  suffix ? name.slice(0, -suffix.length) : name
+
+export function stripPrefixSuffix(
+  name: string,
+  prefix: string | null,
+  suffix: string | null
+) {
+  return stripSuffix(stripPrefix(name, prefix), suffix)
+}
+
 export function isValidTagName(
   prefix: string | null,
   suffix: string | null,
@@ -8,15 +21,10 @@ export function isValidTagName(
   if (name === null) return false
   if (prefix && !name.startsWith(prefix)) return false
   if (suffix && !name.endsWith(suffix)) return false
-  const semverOnly = stripPrefix(stripSuffix(name, suffix), prefix)
+  const semverOnly = stripPrefixSuffix(name, prefix, suffix)
   if (semverOnly === '') return false
   return semver.valid(semverOnly) !== null
 }
-
-const stripPrefix = (name: string, prefix: string | null) =>
-  prefix ? name.slice(prefix.length) : name
-const stripSuffix = (name: string, suffix: string | null) =>
-  suffix ? name.slice(0, -suffix.length) : name
 
 /**
  * Filters a list of tags.

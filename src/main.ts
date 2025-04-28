@@ -5,7 +5,7 @@ import { GitHub } from '@actions/github/lib/utils'
 import { getInputs, Input } from './inputs.js'
 import * as semver from 'semver'
 import { fetchRepoTags, fetchRepoReleases } from './octowrapper.js'
-import { isValidTagName } from './tag_filter.js'
+import { isValidTagName, stripPrefixSuffix } from './tag_filter.js'
 
 type GitHubType = InstanceType<typeof GitHub>
 
@@ -122,16 +122,21 @@ async function checkTags(
     return false
   }
 
+  const semverOnly = stripPrefixSuffix(
+    inputs.version,
+    inputs.prefix,
+    inputs.suffix
+  )
   const highestTag = semver.maxSatisfying(
     tags.map((tag) =>
-      stripSuffix(stripPrefix(tag.name, inputs.prefix), inputs.suffix)
+      stripPrefixSuffix(tag.name, inputs.prefix, inputs.suffix)
     ),
     '*'
   )
   debug(`highestTag: ${highestTag}`)
   if (highestTag) {
-    const greater = semver.gt(inputs.version, highestTag)
-    debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
+    const greater = semver.gt(semverOnly, highestTag)
+    debug(`semver.gt(${semverOnly}, ${highestTag}): ${greater}`)
     if (!greater) {
       const message = `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`
       core.setOutput('message', message)
@@ -177,17 +182,19 @@ async function checkReleases(
   const releaseVersions = releases
     .filter((release) => release.name)
     .map((release) =>
-      stripSuffix(
-        stripPrefix(release.name as string, inputs.prefix),
-        inputs.suffix
-      )
+      stripPrefixSuffix(release.name as string, inputs.prefix, inputs.suffix)
     )
 
+  const semverOnly = stripPrefixSuffix(
+    inputs.version,
+    inputs.prefix,
+    inputs.suffix
+  )
   const highestRelease = semver.maxSatisfying(releaseVersions, '*')
   debug(`highestRelease: ${highestRelease}`)
   if (highestRelease) {
-    const greater = semver.gt(inputs.version, highestRelease)
-    debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
+    const greater = semver.gt(semverOnly, highestRelease)
+    debug(`semver.gt(${semverOnly}, ${highestRelease}): ${greater}`)
     if (!greater) {
       const message = `Release '${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`
       core.setOutput('message', message)
@@ -197,12 +204,4 @@ async function checkReleases(
   }
 
   return true
-}
-
-function stripPrefix(name: string, prefix: string | null) {
-  return prefix ? name.slice(prefix.length) : name
-}
-
-function stripSuffix(name: string, suffix: string | null) {
-  return suffix ? name.slice(0, -suffix.length) : name
 }
