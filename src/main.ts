@@ -9,8 +9,6 @@ import { isValidTagName } from './tag_filter.js'
 
 type GitHubType = InstanceType<typeof GitHub>
 
-import { log } from 'console'
-
 /**
  * The main function for the action.
  *
@@ -23,9 +21,7 @@ export async function run(): Promise<void> {
 
     const version = inputs.version
     core.debug(`Validating version '${version}'`)
-    log(`Validating version '${version}'`)
     const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version)
-    log(`isValidSemVer: ${isValidSemVer}`)
     if (!isValidSemVer) {
       core.setOutput('valid', 'false')
       if (inputs.prefix && !version.startsWith(inputs.prefix)) {

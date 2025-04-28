@@ -20,7 +20,7 @@ import require$$0$8 from 'worker_threads';
 import require$$2$2 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4$2 from 'async_hooks';
-import require$$1$3, { log } from 'console';
+import require$$1$3 from 'console';
 import require$$1$4 from 'url';
 import require$$3$2 from 'zlib';
 import require$$6 from 'string_decoder';
@@ -37528,9 +37528,7 @@ async function run() {
         coreExports.debug(`inputs: ${JSON.stringify(inputs)}`);
         const version = inputs.version;
         coreExports.debug(`Validating version '${version}'`);
-        log(`Validating version '${version}'`);
         const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version);
-        log(`isValidSemVer: ${isValidSemVer}`);
         if (!isValidSemVer) {
             coreExports.setOutput('valid', 'false');
             if (inputs.prefix && !version.startsWith(inputs.prefix)) {
