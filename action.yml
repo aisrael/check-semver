@@ -28,13 +28,13 @@ inputs:
       Set to "true" to check that this new version is SemVer higher than
       existing tags
     required: false
-    default: 'true'
+    default: 'false'
   check_releases:
     description: >
       Set to "true" to check that this new version is SemVer higher than
       existing releases
     required: false
-    default: 'true'
+    default: 'false'
   prefix:
     description: >
       An optional prefix to prepend to the SemVer. For example, "cli-"
