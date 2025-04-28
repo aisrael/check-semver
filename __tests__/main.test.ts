@@ -93,7 +93,7 @@ describe('main.ts', () => {
         fakeTag('cli-0.1.2')
       ])
     })
-    // @ts-ignore
+    // @ts-expect-error: We don't need to mock the whole return object
     fetchRepoReleases.mockImplementation(() => {
       return Promise.resolve([fakeRelease('0.10.1')])
     })
