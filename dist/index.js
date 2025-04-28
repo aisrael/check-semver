@@ -31233,10 +31233,10 @@ var github = /*@__PURE__*/getDefaultExportFromCjs(githubExports);
 function getInputs() {
     const version = coreExports.getInput('version', { required: true });
     const check_tags = getOptionalBooleanInput('check_tags');
-    log(`check_tags: ${check_tags}`);
+    coreExports.debug(`check_tags: ${check_tags}`);
     const checkTags = check_tags === null ? false : check_tags;
     const check_releases = getOptionalBooleanInput('check_releases');
-    log(`check_releases: ${check_releases}`);
+    coreExports.debug(`check_releases: ${check_releases}`);
     const checkReleases = check_releases === null ? false : check_releases;
     const token = coreExports.getInput('token');
     if (checkTags || checkReleases) {
@@ -37528,7 +37528,22 @@ async function run() {
         coreExports.debug(`inputs: ${JSON.stringify(inputs)}`);
         const version = inputs.version;
         coreExports.debug(`Validating version '${version}'`);
-        const isValidSemVer = semverExports.valid(version) !== null;
+        log(`Validating version '${version}'`);
+        const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version);
+        log(`isValidSemVer: ${isValidSemVer}`);
+        if (!isValidSemVer) {
+            coreExports.setOutput('valid', 'false');
+            if (inputs.prefix && !version.startsWith(inputs.prefix)) {
+                coreExports.setOutput('message', `'${version}' does not start with prefix '${inputs.prefix}'`);
+            }
+            else if (inputs.suffix && !version.endsWith(inputs.suffix)) {
+                coreExports.setOutput('message', `'${version}' does not end with suffix '${inputs.suffix}'`);
+            }
+            else {
+                coreExports.setOutput('message', `'${version}' is not a valid SemVer`);
+            }
+            return;
+        }
         if (inputs.checkTags || inputs.checkReleases) {
             const lastFourChars = inputs.token.slice(-4);
             coreExports.debug(`Using token: ...${lastFourChars}`);
@@ -37548,6 +37563,9 @@ async function run() {
         coreExports.debug(`Valid: ${valid.toString()}`);
         // Set outputs for other workflow steps to use
         coreExports.setOutput('valid', valid.toString());
+        if (valid) {
+            coreExports.setOutput('message', 'Version is valid');
+        }
     }
     catch (error) {
         if (error instanceof Error) {
@@ -37574,6 +37592,7 @@ async function checkTags(inputs, octokit) {
     }
     if (tags.find((tag) => tag.name === inputs.version)) {
         coreExports.debug(`Found tag matching version: ${inputs.version}`);
+        coreExports.setOutput('message', `Tag '${inputs.version}' already exists`);
         return false;
     }
     const highestTag = semverExports.maxSatisfying(tags.map((tag) => stripSuffix(stripPrefix(tag.name, inputs.prefix), inputs.suffix)), '*');
@@ -37581,7 +37600,10 @@ async function checkTags(inputs, octokit) {
     if (highestTag) {
         const greater = semverExports.gt(inputs.version, highestTag);
         coreExports.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`);
-        return greater;
+        if (!greater) {
+            coreExports.setOutput('message', `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`);
+            return false;
+        }
     }
     return true;
 }
@@ -37600,6 +37622,7 @@ async function checkReleases(inputs, octokit) {
     }
     if (releases.find((release) => release.name === inputs.version)) {
         coreExports.debug(`Found release matching version: ${inputs.version}`);
+        coreExports.setOutput('message', `Release '${inputs.version}' already exists`);
         return false;
     }
     const releaseVersions = releases
@@ -37610,7 +37633,10 @@ async function checkReleases(inputs, octokit) {
     if (highestRelease) {
         const greater = semverExports.gt(inputs.version, highestRelease);
         coreExports.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`);
-        return greater;
+        if (!greater) {
+            coreExports.setOutput('message', `Release 'Tag ${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`);
+            return false;
+        }
     }
     return true;
 }

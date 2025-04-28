@@ -9,6 +9,8 @@ import { isValidTagName } from './tag_filter.js'
 
 type GitHubType = InstanceType<typeof GitHub>
 
+import { log } from 'console'
+
 /**
  * The main function for the action.
  *
@@ -21,7 +23,26 @@ export async function run(): Promise<void> {
 
     const version = inputs.version
     core.debug(`Validating version '${version}'`)
-    const isValidSemVer = semver.valid(version) !== null
+    log(`Validating version '${version}'`)
+    const isValidSemVer = isValidTagName(inputs.prefix, inputs.suffix, version)
+    log(`isValidSemVer: ${isValidSemVer}`)
+    if (!isValidSemVer) {
+      core.setOutput('valid', 'false')
+      if (inputs.prefix && !version.startsWith(inputs.prefix)) {
+        core.setOutput(
+          'message',
+          `'${version}' does not start with prefix '${inputs.prefix}'`
+        )
+      } else if (inputs.suffix && !version.endsWith(inputs.suffix)) {
+        core.setOutput(
+          'message',
+          `'${version}' does not end with suffix '${inputs.suffix}'`
+        )
+      } else {
+        core.setOutput('message', `'${version}' is not a valid SemVer`)
+      }
+      return
+    }
 
     if (inputs.checkTags || inputs.checkReleases) {
       const lastFourChars = inputs.token.slice(-4)
@@ -48,6 +69,9 @@ export async function run(): Promise<void> {
 
     // Set outputs for other workflow steps to use
     core.setOutput('valid', valid.toString())
+    if (valid) {
+      core.setOutput('message', 'Version is valid')
+    }
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message)
@@ -85,6 +109,7 @@ async function checkTags(
 
   if (tags.find((tag) => tag.name === inputs.version)) {
     core.debug(`Found tag matching version: ${inputs.version}`)
+    core.setOutput('message', `Tag '${inputs.version}' already exists`)
     return false
   }
 
@@ -98,7 +123,13 @@ async function checkTags(
   if (highestTag) {
     const greater = semver.gt(inputs.version, highestTag)
     core.debug(`semver.gt(${inputs.version}, ${highestTag}): ${greater}`)
-    return greater
+    if (!greater) {
+      core.setOutput(
+        'message',
+        `'${inputs.version}' is not SemVer higher than existing tag '${highestTag}'`
+      )
+      return false
+    }
   }
 
   return true
@@ -129,6 +160,7 @@ async function checkReleases(
 
   if (releases.find((release) => release.name === inputs.version)) {
     core.debug(`Found release matching version: ${inputs.version}`)
+    core.setOutput('message', `Release '${inputs.version}' already exists`)
     return false
   }
 
@@ -146,7 +178,13 @@ async function checkReleases(
   if (highestRelease) {
     const greater = semver.gt(inputs.version, highestRelease)
     core.debug(`semver.gt(${inputs.version}, ${highestRelease}): ${greater}`)
-    return greater
+    if (!greater) {
+      core.setOutput(
+        'message',
+        `Release 'Tag ${inputs.version}' is not SemVer higher than existing release '${highestRelease}'`
+      )
+      return false
+    }
   }
 
   return true

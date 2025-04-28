@@ -1,8 +1,6 @@
 import * as core from '@actions/core'
 import github from '@actions/github'
 
-import { log } from 'console'
-
 export interface Input {
   /**
    * The version or tag to validate
@@ -49,11 +47,11 @@ export function getInputs(): Input {
   const version = core.getInput('version', { required: true })
 
   const check_tags = getOptionalBooleanInput('check_tags')
-  log(`check_tags: ${check_tags}`)
+  core.debug(`check_tags: ${check_tags}`)
   const checkTags = check_tags === null ? false : check_tags
 
   const check_releases = getOptionalBooleanInput('check_releases')
-  log(`check_releases: ${check_releases}`)
+  core.debug(`check_releases: ${check_releases}`)
   const checkReleases = check_releases === null ? false : check_releases
 
   const token = core.getInput('token')

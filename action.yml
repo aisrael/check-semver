@@ -49,6 +49,9 @@ outputs:
   valid:
     description: >
       Whether the version is valid, and, is SemVer
+  message:
+    description: >
+      A message about the result
 
 runs:
   using: node20

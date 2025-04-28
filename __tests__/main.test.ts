@@ -118,6 +118,7 @@ describe('main.ts', () => {
     // Verify the time output was set.
     expect(core.setOutput).toHaveBeenCalled()
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'true')
+    expect(core.setOutput).toHaveBeenCalledWith('message', 'Version is valid')
   })
 
   it('Catches an invalid semver', async () => {
@@ -134,6 +135,10 @@ describe('main.ts', () => {
 
     // Verify the time output was set.
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+    expect(core.setOutput).toHaveBeenCalledWith(
+      'message',
+      "'a.b.c' is not a valid SemVer"
+    )
   })
 
   it('Sets a failed status if no token is provided and one is needed', async () => {
@@ -175,6 +180,10 @@ describe('main.ts', () => {
     expect(fetchRepoTags).toHaveBeenCalled()
 
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+    expect(core.setOutput).toHaveBeenCalledWith(
+      'message',
+      "Tag '0.10.1' already exists"
+    )
   })
 
   it('Checks that the new version is SemVer higher than the latest tag', async () => {
@@ -186,6 +195,10 @@ describe('main.ts', () => {
     expect(fetchRepoTags).toHaveBeenCalled()
 
     expect(core.setOutput).toHaveBeenCalledWith('valid', 'false')
+    expect(core.setOutput).toHaveBeenCalledWith(
+      'message',
+      "'0.10.0' is not SemVer higher than existing tag '0.10.1'"
+    )
   })
 
   it('Supports prefixes on tag', async () => {
