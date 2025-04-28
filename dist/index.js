@@ -37538,9 +37538,11 @@ async function run() {
             : null;
         const tagsOk = inputs.checkTags ? await checkTags(inputs, octokit) : true;
         coreExports.debug(`tagsOk: ${tagsOk.toString()}`);
-        const releaseOk = inputs.checkReleases
-            ? await checkReleases(inputs, octokit)
-            : true;
+        const releaseOk = tagsOk
+            ? inputs.checkReleases
+                ? await checkReleases(inputs, octokit)
+                : true
+            : false;
         coreExports.debug(`releaseOk: ${releaseOk.toString()}`);
         const valid = isValidSemVer && tagsOk && releaseOk;
         coreExports.debug(`Valid: ${valid.toString()}`);
