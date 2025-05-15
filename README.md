@@ -60,7 +60,7 @@ It can also be instructed to check tags and releases, such that:
     prefix: 'cli-'
 ```
 
-### Check that the version is not an existing tag, and is SemVer higher than the highest existing tag or release
+### Check that the version is not an existing tag, and is SemVer higher than the highest existing tag
 
 ```yaml
 - name: Check version
