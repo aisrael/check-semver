@@ -34695,7 +34695,7 @@ class RequestError extends Error {
 // pkg/dist-src/index.js
 
 // pkg/dist-src/version.js
-var VERSION$6 = "0.0.0-development";
+var VERSION$6 = "10.0.3";
 
 // pkg/dist-src/defaults.js
 var defaults_default = {
@@ -35046,12 +35046,27 @@ var createTokenAuth = function createTokenAuth2(token) {
   });
 };
 
-const VERSION$4 = "7.0.2";
+const VERSION$4 = "7.0.3";
 
 const noop = () => {
 };
 const consoleWarn = console.warn.bind(console);
 const consoleError = console.error.bind(console);
+function createLogger(logger = {}) {
+  if (typeof logger.debug !== "function") {
+    logger.debug = noop;
+  }
+  if (typeof logger.info !== "function") {
+    logger.info = noop;
+  }
+  if (typeof logger.warn !== "function") {
+    logger.warn = consoleWarn;
+  }
+  if (typeof logger.error !== "function") {
+    logger.error = consoleError;
+  }
+  return logger;
+}
 const userAgentTrail = `octokit-core.js/${VERSION$4} ${getUserAgent()}`;
 let Octokit$1 = class Octokit {
   static VERSION = VERSION$4;
@@ -35119,15 +35134,7 @@ let Octokit$1 = class Octokit {
     }
     this.request = request.defaults(requestDefaults);
     this.graphql = withCustomRequest(this.request).defaults(requestDefaults);
-    this.log = Object.assign(
-      {
-        debug: noop,
-        info: noop,
-        warn: consoleWarn,
-        error: consoleError
-      },
-      options.log
-    );
+    this.log = createLogger(options.log);
     this.hook = hook;
     if (!options.authStrategy) {
       if (!options.auth) {
