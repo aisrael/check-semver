@@ -42,7 +42,7 @@
     "@octokit/core": "^7.0.3",
     "@octokit/rest": "^22.0.0",
     "@octokit/types": "^14.0.0",
-    "@types/semver": "^7.7.0",
+    "@types/semver": "^7.7.1",
     "semver": "^7.7.1"
   },
   "devDependencies": {
